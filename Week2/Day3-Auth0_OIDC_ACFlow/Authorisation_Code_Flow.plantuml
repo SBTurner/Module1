@@ -1,0 +1,19 @@
+@startuml OAuth Authorisation Code Flow
+    skinparam maxMessageSize 110
+    skinparam sequenceMessageAlign center
+
+    actor User
+    activate User
+    User -> App : login (username,pwd)
+    App -> OAuth : /login(redirect URL)
+    OAuth -> OAuth : Validate username/pwd
+    App <-- OAuth : authorisation code
+    App -> OAuth : /oauth/token (authorisation code)
+    OAuth -> OAuth : Validate authorisation code
+    OAuth --> App : accessToken & idToken
+    App --> App : retrieve profile info
+    App --> Resource : request(accessToken)
+    Resource --> Resource: validate accessToken
+    Resource --> App : response
+    User <- App : granted access
+@enduml

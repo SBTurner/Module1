@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<body>
+    <div style="font-size: x-large;">Use the Inspector to encode a message by calling outgoing("") and decode a message by calling incoming("")
+    </br>The result will be displayed in the console.
+    </div>
+</body>
+
+<script>
+
+    const algorithm = {
+        name: 'AES-GCM',
+        length: 128
+    }   
+
+    const settings = {
+        name: 'AES-GCM',
+        iv: new Uint8Array([184, 163, 8, 238, 51, 247, 91, 27, 112, 61, 252, 194, 39, 217, 222, 60])
+    }
+    // to generate the iv: crypto.getRandomValues(new Uint8Array(16))
+    // share this with the other end (KEEP SECRET!!)
+    
+
+    // ------------- Functions
+    async function outgoing( msg ){
+        // Step 1. Generate Key and Shareable Key
+        // Step 2. convert message String --> Array Buffer
+        // Step 3. encrypt Array Buffer
+        // Step 4. convert ciphered Array Buffer --> String
+        const key = await crypto.subtle.generateKey(algorithm, true, ["encrypt", "decrypt"])
+        const shareableKey = await crypto.subtle.exportKey('jwk', key)
+
+        const msgAB = new TextEncoder().encode(msg)
+        const enc_msgAB = await crypto.subtle.encrypt(settings, key, msgAB)
+        const enc_msg = Array
+            .from(new Uint8Array(enc_msgAB))
+            .map(byte => String.fromCharCode(byte)).join('')
+        const msgToTransfer = btoa(enc_msg + "|" + JSON.stringify(shareableKey))
+        console.log(msgToTransfer)
+        return msgToTransfer
+    }
+
+    async function incoming( text ){
+        // Step 1. Seperate the Encrypted Message from the Shareable Key
+        // Step 2. convert Ciphered String --> Array Buffer
+        // Step 3. decrypt Array Buffer
+        // Step 4. convert Array Buffer --> String
+        const [enc_msg, shareableKey] = atob(text).split("|")
+        const key = await crypto.subtle.importKey('jwk', JSON.parse(shareableKey), algorithm, false, ["decrypt"])
+
+        const enc_msgAB = new Uint8Array(enc_msg.match(/[\s\S]/g).map(ch => ch.charCodeAt(0)))
+        const msgAB = await crypto.subtle.decrypt(settings, key, enc_msgAB)
+        const msg = new TextDecoder().decode(msgAB)
+        console.log(msg)
+        return msg
+    }
+    
+</script>
